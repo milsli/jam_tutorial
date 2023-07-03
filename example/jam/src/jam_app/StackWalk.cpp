@@ -30,7 +30,11 @@ typedef BOOL (__stdcall *tSC)( IN HANDLE hProcess );
 static tSC pSC = NULL;
 ///////////////////////////////////////////////////////////////////////////////
 // SymFunctionTableAccess()
+#ifdef _WIN64
+typedef PVOID (__stdcall *tSFTA)(HANDLE hProcess, DWORD64 AddrBase);
+#else
 typedef PVOID (__stdcall *tSFTA)( HANDLE hProcess, DWORD AddrBase );
+#endif
 static tSFTA pSFTA = NULL;
 ///////////////////////////////////////////////////////////////////////////////
 // SymGetLineFromAddr()
@@ -39,7 +43,11 @@ typedef BOOL (__stdcall *tSGLFA)( IN HANDLE hProcess, IN DWORD dwAddr,
 static tSGLFA pSGLFA = NULL;
 ///////////////////////////////////////////////////////////////////////////////
 // SymGetModuleBase()
+#ifdef _WIN64
+typedef DWORD64 (__stdcall *tSGMB)(IN HANDLE hProcess, IN DWORD64 dwAddr);
+#else
 typedef DWORD (__stdcall *tSGMB)( IN HANDLE hProcess, IN DWORD dwAddr );
+#endif
 static tSGMB pSGMB = NULL;
 ///////////////////////////////////////////////////////////////////////////////
 // SymGetModuleInfo()
@@ -364,10 +372,17 @@ void ShowStack( HANDLE hThread, CONTEXT& c )
     // Notes: AddrModeFlat is just an assumption. I hate VDM debugging.
     // Notes: will have to be #ifdef-ed for Alphas; MIPSes are dead anyway,
     // and good riddance.
+#ifdef _WIN64
+    s.AddrPC.Offset = c.Rip;
+    s.AddrPC.Mode = AddrModeFlat;
+    s.AddrFrame.Offset = c.Rbp;
+    s.AddrFrame.Mode = AddrModeFlat;
+#else
     s.AddrPC.Offset = c.Eip;
     s.AddrPC.Mode = AddrModeFlat;
     s.AddrFrame.Offset = c.Ebp;
     s.AddrFrame.Mode = AddrModeFlat;
+#endif
 
     memset( pSym, '\0', IMGSYMLEN + MAXNAMELEN );
     pSym->SizeOfStruct = IMGSYMLEN;
